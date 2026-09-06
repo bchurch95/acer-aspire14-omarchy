@@ -1,0 +1,7 @@
+# Example SSH Configuration (~/.ssh/config)
+# Host myserver
+#     HostName 192.168.1.50
+#     User yourusername
+#     IdentityFile ~/.ssh/id_ed25519
+#     ServerAliveInterval 60
+#     ServerAliveCountMax 3

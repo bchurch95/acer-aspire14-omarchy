@@ -1,0 +1,12 @@
+#!/bin/bash
+PIPE="/srv/music/desktop.pipe"
+
+while true; do
+    # Make sure OwnTone has the pipe playing
+    curl -s -X POST 'http://localhost:3689/api/queue/items/add?expression=path+is+"/srv/music/desktop.pipe"&playback=start' >/dev/null 2>&1
+
+    # Record clean PCM16 audio from HomePods virtual sink monitor into the FIFO pipe
+    parec -d HomePods.monitor --rate=44100 --channels=2 --format=s16le > "$PIPE" 2>/dev/null
+
+    sleep 1
+done

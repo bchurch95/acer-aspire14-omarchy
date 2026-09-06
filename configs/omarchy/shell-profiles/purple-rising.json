@@ -1,0 +1,111 @@
+{
+  "bar": {
+    "centerAnchor": "omarchy.clock",
+    "layout": {
+      "center": [
+        {
+          "id": "omarchy.indicators"
+        },
+        {
+          "format": "dddd h:mm AP",
+          "formatAlt": "d MMMM 'W'ww yyyy",
+          "id": "omarchy.clock",
+          "verticalFormat": "h\n—\nmm\nAP"
+        },
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "io.github.jainprashul.omacast"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
+      "left": [
+        {
+          "id": "ben.menu"
+        },
+        {
+          "id": "omarchy.workspaces"
+        },
+        {
+          "id": "ben.apple-music-button"
+        },
+        {
+          "id": "ben.media"
+        }
+      ],
+      "right": [
+        {
+          "id": "omarchy.tray"
+        },
+        {
+          "id": "sysinfo",
+          "type": "qml"
+        },
+        {
+          "id": "omamail"
+        },
+        {
+          "id": "jankeesvw.time-machine"
+        },
+        {
+          "id": "isaact135.network-shares"
+        },
+        {
+          "id": "io.github.zachwilke.mx"
+        },
+        {
+          "id": "io.github.thisisgm.omapods"
+        },
+        {
+          "id": "jkoestinger.vpn"
+        },
+        {
+          "id": "ben.agents",
+          "refreshIntervalSec": 60
+        },
+        {
+          "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "ben.network"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
+          "id": "io.github.vuhungthang.monitor-studio"
+        },
+        {
+          "id": "omarchy.power",
+          "showPercentage": false
+        }
+      ]
+    },
+    "position": "top",
+    "transparent": true,
+    "id": "ben.bar"
+  },
+  "cloneSourceRestores": [
+    "ben.media",
+    "ben.agents",
+    "ben.menu"
+  ],
+  "disabledPlugins": [
+    "omarchy.media",
+    "omarchy.agents",
+    "omarchy.menu"
+  ],
+  "idle": {
+    "lock": 300,
+    "screensaver": 150
+  },
+  "plugins": [
+    {
+      "id": "nosignal.omasend"
+    }
+  ],
+  "version": 1
+}

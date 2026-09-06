@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "ben.apple-music-button",
+  "name": "Apple Music Button",
+  "version": "1.0.0",
+  "author": "Ben Church",
+  "description": "Compact Apple Music top bar toggle and scratchpad controller.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Apple Music Button",
+    "description": "Top bar button to toggle Apple Music dropdown scratchpad overlay",
+    "category": "Media",
+    "allowMultiple": false
+  }
+}

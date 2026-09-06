@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Wrapper to bridge omarchy share / LocalSend invocations to native Omasend
+
+if [[ "$1" == "--headless" && "$2" == "send" ]]; then
+  shift 2
+  json_paths="[]"
+  if (( $# > 0 )); then
+    json_paths=$(python3 -c 'import sys, json; print(json.dumps(sys.argv[1:]))' "$@")
+  fi
+  omarchy-shell -q shell summon nosignal.omasend "{\"paths\": $json_paths}"
+  exit $?
+fi
+
+# Default: toggle the native Omasend panel in Omarchy shell
+if command -v omarchy-shell >/dev/null 2>&1; then
+  omarchy-shell -q shell toggle nosignal.omasend
+  exit $?
+fi
+
+if [[ -x /usr/bin/localsend ]]; then
+  exec /usr/bin/localsend "$@"
+fi

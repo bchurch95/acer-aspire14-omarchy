@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Apple Music dedicated web app launcher (Dropdown / Background Scratchpad)
+APP_URL="https://music.apple.com/us/"
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/omarchy/webapps/apple-music"
+
+mkdir -p "$DATA_DIR"
+
+SILENT=0
+PASSTHROUGH_ARGS=()
+
+for arg in "$@"; do
+  case "$arg" in
+    --background|--silent|-b)
+      SILENT=1
+      ;;
+    *)
+      PASSTHROUGH_ARGS+=("$arg")
+      ;;
+  esac
+done
+
+# Check if Apple Music window is currently open
+WINDOW_EXISTS=$(hyprctl clients -j 2>/dev/null | jq -r '.[] | select((.class | test("music\\.apple\\.com|apple-music"; "i")) or (.initialTitle | test("music\\.apple\\.com"; "i")) or (.title | test("Apple.Music"; "i"))) | .address' | head -n1)
+
+if [[ -n "$WINDOW_EXISTS" ]]; then
+  if (( ! SILENT )); then
+    # Toggle the dropdown special workspace
+    hyprctl dispatch 'hl.dsp.workspace.toggle_special("music")' >/dev/null 2>&1
+  fi
+  exit 0
+fi
+
+# Locate Chrome / Chromium binary
+CHROME_BIN=""
+for bin in /opt/google/chrome/google-chrome /usr/bin/google-chrome-stable google-chrome-stable google-chrome chromium; do
+  if command -v "$bin" >/dev/null 2>&1; then
+    CHROME_BIN="$(command -v "$bin")"
+    break
+  fi
+done
+
+if [[ -z "$CHROME_BIN" ]]; then
+  echo "Error: Google Chrome or Chromium not found." >&2
+  exit 1
+fi
+
+CHROME_ARGS=(
+  --app="$APP_URL"
+  --user-data-dir="$DATA_DIR"
+  --class="chrome-music.apple.com__us_-Default"
+  --ozone-platform=wayland
+  --ozone-platform-hint=wayland
+  --password-store=gnome-libsecret
+  --enable-features=TouchpadOverscrollHistoryNavigation,WaylandFractionalScaleV1,HardwareMediaKeyHandling,MediaSessionService
+  --force-device-scale-factor=1
+)
+
+# If not running, launch it in the special workspace (placed silently by window rules)
+if command -v uwsm-app >/dev/null 2>&1; then
+  nohup setsid uwsm-app -- "$CHROME_BIN" "${CHROME_ARGS[@]}" "${PASSTHROUGH_ARGS[@]}" >/dev/null 2>&1 &
+else
+  nohup setsid "$CHROME_BIN" "${CHROME_ARGS[@]}" "${PASSTHROUGH_ARGS[@]}" >/dev/null 2>&1 &
+fi
+
+# If interactive, toggle the special workspace so it slides down into view
+if (( ! SILENT )); then
+  hyprctl dispatch 'hl.dsp.workspace.toggle_special("music")' >/dev/null 2>&1
+fi
+
+exit 0
