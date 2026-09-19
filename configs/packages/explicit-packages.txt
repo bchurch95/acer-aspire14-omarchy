@@ -130,6 +130,7 @@ pipewire-pulse 1:1.6.8-1
 plocate 1.1.24-2
 postgresql-libs 18.6-1
 power-profiles-daemon 0.30-1
+powertop 2.16-1
 python-gobject 3.56.3-1
 python-poetry-core 2.4.1-1
 qemu-user-static-binfmt 11.1.0-1

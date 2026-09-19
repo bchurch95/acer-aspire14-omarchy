@@ -159,8 +159,18 @@ restore_user_configs() {
   if [[ -f "$CONFIGS_DIR/limine-entry-tool.d/aspm.conf" && -d /etc/limine-entry-tool.d ]]; then
     sudo cp -v "$CONFIGS_DIR/limine-entry-tool.d/aspm.conf" /etc/limine-entry-tool.d/aspm.conf
   fi
+  if [[ -f "$CONFIGS_DIR/sysctl.d/20-nmi-watchdog.conf" ]]; then
+    sudo mkdir -p /etc/sysctl.d
+    sudo cp -v "$CONFIGS_DIR/sysctl.d/20-nmi-watchdog.conf" /etc/sysctl.d/20-nmi-watchdog.conf
+    sudo sysctl -w kernel.nmi_watchdog=0 2>/dev/null || true
+  fi
+  if [[ -f "$CONFIGS_DIR/udev/rules.d/99-power-profile-switch.rules" ]]; then
+    sudo mkdir -p /etc/udev/rules.d
+    sudo cp -v "$CONFIGS_DIR/udev/rules.d/99-power-profile-switch.rules" /etc/udev/rules.d/99-power-profile-switch.rules
+    sudo udevadm control --reload-rules 2>/dev/null || true
+  fi
   command -v powerprofilesctl >/dev/null && powerprofilesctl set balanced || true
-  log_success "PCIe ASPM powersave policy and balanced power profile restored."
+  log_success "PCIe ASPM powersave policy, NMI watchdog tweak, udev power switcher, and balanced power profile restored."
 
   # Reload desktop
   command -v hyprctl >/dev/null && hyprctl reload || true

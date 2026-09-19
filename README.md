@@ -254,11 +254,14 @@ All custom and forked shell plugins are synchronized using the centralized [`bch
     │   └── explicit-packages.txt            # Explicit pacman/yay package manifest
     ├── plugins/                             # Local plugin sources
     ├── ssh/                                 # Server SSH configuration
+    ├── sysctl.d/                            # Kernel sysctl parameters (NMI watchdog disable)
     ├── systemd/
     │   └── service.d/                       # Global service watchdog overrides
     ├── terminals/                           # Alacritty, Ghostty, Kitty, Foot font configs
     ├── themes/                              # Custom themes (purple-rising, q2dm1)
-    └── tmpfiles.d/                          # Systemd tmpfiles (PCIe ASPM powersave policy)
+    ├── tmpfiles.d/                          # Systemd tmpfiles (PCIe ASPM powersave policy)
+    └── udev/
+        └── rules.d/                         # Dynamic AC/Battery power profile switching
 ```
 
 ---
@@ -271,10 +274,10 @@ Acer routes platform profiles, fan curves, and battery features through propriet
 * **Mainline `acer-wmi` Driver:** Mainline Linux connects to basic hotkeys, rfkill switches, and video devices. On this Lunar Lake chassis, `/sys/firmware/acpi/platform_profile_choices` is not natively exposed by mainline `acer-wmi`.
 * **Userspace Fallback:** `power-profiles-daemon` falls back to `CpuDriver: intel_pstate` with `PlatformDriver: placeholder`. Power scaling is handled directly at the silicon level via Energy Performance Preference (EPP) registers.
 
-### 2. CPU Power Scaling & EPP
+### 2. CPU Power Scaling & Dynamic AC/Battery Switching
 * Managed by the `intel_pstate` driver with governor `powersave`.
 * Switching profiles via `powerprofilesctl set balanced` or `power-saver` dynamically writes to `/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference`.
-* On AC power, `balanced` defaults to `balance_performance`; on battery, `power-saver` sets EPP to `power` for maximum battery life.
+* **Dynamic AC/Battery Udev Rule:** Located at `configs/udev/rules.d/99-power-profile-switch.rules`. Automatically transitions the laptop to `power-saver` (EPP: `power`) when the charger is unplugged, and restores `balanced` (EPP: `balance_performance`) when plugged back into AC.
 
 ### 3. Intel DPTF / Thermald Adaptive Mode
 * `thermald.service` runs automatically with `--adaptive` (`/usr/bin/thermald --systemd --dbus-enable --adaptive`).
@@ -297,8 +300,19 @@ Acer routes platform profiles, fan curves, and battery features through propriet
   # Output: default performance [powersave] powersupersave
   ```
 
-### 6. One-Command Application
-Run the included optimization tool to deploy ASPM policies, balance EPP states, and install the battery threshold driver:
+### 6. Kernel NMI Watchdog Disabling (Deep Package C-States)
+* The kernel NMI watchdog periodically interrupts CPU cores, preventing the Lunar Lake SoC package from remaining in deep **Package C8 / C10** low-power states.
+* Disabled via `configs/sysctl.d/20-nmi-watchdog.conf`:
+  ```ini
+  kernel.nmi_watchdog = 0
+  ```
+
+### 7. Real-Time Discharge Tuning (`powertop`)
+* Use `sudo powertop` on battery to inspect real-time discharge wattage.
+* A well-tuned Lunar Lake laptop idling with low screen brightness typically draws **3.5W to 5.0W**.
+
+### 8. One-Command Application
+Run the included optimization tool to deploy ASPM policies, NMI watchdog sysctl, dynamic udev rules, and install the battery threshold driver:
 ```bash
 cd ~/Work/acer-aspire14-omarchy-config
 ./apply-power-fixes.sh

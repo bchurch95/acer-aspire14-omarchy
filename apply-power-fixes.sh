@@ -47,14 +47,39 @@ if [[ -f "$CONFIGS_DIR/limine-entry-tool.d/aspm.conf" && -d /etc/limine-entry-to
 fi
 log_success "PCIe ASPM powersave policy deployed."
 
-# 3. CPU EPP & Power Profiles Daemon
+# 3. Disable Kernel NMI Watchdog (allows Package C8/C10 sleep)
+log_info "Disabling Kernel NMI Watchdog to enable deep Package C-states..."
+if [[ -f "$CONFIGS_DIR/sysctl.d/20-nmi-watchdog.conf" ]]; then
+  sudo mkdir -p /etc/sysctl.d
+  sudo cp -v "$CONFIGS_DIR/sysctl.d/20-nmi-watchdog.conf" /etc/sysctl.d/20-nmi-watchdog.conf
+  sudo sysctl -w kernel.nmi_watchdog=0 >/dev/null 2>&1 || true
+  log_success "Kernel NMI Watchdog disabled."
+fi
+
+# 4. Automatic AC / Battery Power Profile Switching (udev rule)
+log_info "Configuring automatic AC/Battery power profile switching via udev..."
+if [[ -f "$CONFIGS_DIR/udev/rules.d/99-power-profile-switch.rules" ]]; then
+  sudo mkdir -p /etc/udev/rules.d
+  sudo cp -v "$CONFIGS_DIR/udev/rules.d/99-power-profile-switch.rules" /etc/udev/rules.d/99-power-profile-switch.rules
+  sudo udevadm control --reload-rules 2>/dev/null || true
+  sudo udevadm trigger --subsystem-match=power_supply 2>/dev/null || true
+  log_success "AC/Battery dynamic power profile udev rule installed."
+fi
+
+# 5. CPU EPP & Power Profiles Daemon
 log_info "Configuring CPU Energy Performance Preference (EPP)..."
 if command -v powerprofilesctl >/dev/null 2>&1; then
   powerprofilesctl set balanced
   log_success "Power profile set to balanced (CPU EPP: balance_performance)."
 fi
 
-# 4. Battery Charge Threshold (80% Care Center Limit via WMI)
+# 6. Install PowerTop for diagnostics
+if ! command -v powertop >/dev/null 2>&1; then
+  log_info "Installing powertop for real-time power diagnostics..."
+  sudo pacman -S --needed --noconfirm powertop 2>/dev/null || true
+fi
+
+# 7. Battery Charge Threshold (80% Care Center Limit via WMI)
 log_info "Configuring Acer Battery Threshold Driver (acer-wmi-battery)..."
 if ! lsmod | grep -q "acer_wmi_battery"; then
   if ! pacman -Qi acer-wmi-battery-dkms >/dev/null 2>&1 && ! pacman -Qi acer-wmi-battery-dkms-git >/dev/null 2>&1; then
@@ -74,7 +99,7 @@ else
   log_warn "Battery charge control node not yet available (reboot may be required if DKMS just built)."
 fi
 
-# 5. Summary Verification
+# 8. Summary Verification
 echo ""
 echo "${BOLD}----------------- Power & Hardware Verification -----------------${RESET}"
 echo -n "  PCIe ASPM Policy:     "
@@ -83,6 +108,8 @@ echo -n "  Active Power Profile: "
 powerprofilesctl get 2>/dev/null || echo "N/A"
 echo -n "  CPU0 EPP State:       "
 cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null || echo "N/A"
+echo -n "  NMI Watchdog:         "
+cat /proc/sys/kernel/nmi_watchdog 2>/dev/null || echo "N/A"
 echo -n "  Battery Charge Limit: "
 cat /sys/class/power_supply/BAT1/charge_control_end_threshold 2>/dev/null || echo "Not exposed"
 echo -n "  Intel DTT / Thermald: "
