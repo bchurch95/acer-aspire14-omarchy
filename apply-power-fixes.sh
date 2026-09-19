@@ -81,6 +81,10 @@ fi
 
 # 7. Battery Charge Threshold (80% Care Center Limit via WMI)
 log_info "Configuring Acer Battery Threshold Driver (acer-wmi-battery)..."
+if [[ -f "$CONFIGS_DIR/modprobe.d/acer-wmi-battery.conf" ]]; then
+  sudo cp -v "$CONFIGS_DIR/modprobe.d/acer-wmi-battery.conf" /etc/modprobe.d/acer-wmi-battery.conf
+fi
+
 if ! lsmod | grep -q "acer_wmi_battery"; then
   if ! pacman -Qi acer-wmi-battery-dkms >/dev/null 2>&1 && ! pacman -Qi acer-wmi-battery-dkms-git >/dev/null 2>&1; then
     log_info "Installing acer-wmi-battery-dkms via AUR..."
@@ -88,15 +92,19 @@ if ! lsmod | grep -q "acer_wmi_battery"; then
       yay -S --needed --noconfirm dkms acer-wmi-battery-dkms || true
     fi
   fi
-  sudo modprobe acer-wmi-battery 2>/dev/null || true
+  sudo modprobe acer-wmi-battery enable_health_mode=1 2>/dev/null || true
 fi
 
-# Apply 80% threshold if sysfs node is available
-if [[ -w /sys/class/power_supply/BAT1/charge_control_end_threshold ]]; then
+# Apply 80% threshold to driver sysfs node
+WMI_HEALTH_NODE="/sys/bus/wmi/drivers/acer-wmi-battery/health_mode"
+if [[ -w "$WMI_HEALTH_NODE" ]]; then
+  echo 1 | sudo tee "$WMI_HEALTH_NODE" >/dev/null
+  log_success "Battery Health Mode set to 1 (80% charge limit active)."
+elif [[ -w /sys/class/power_supply/BAT1/charge_control_end_threshold ]]; then
   echo 80 | sudo tee /sys/class/power_supply/BAT1/charge_control_end_threshold >/dev/null
   log_success "Battery charge limit set to 80% (/sys/class/power_supply/BAT1/charge_control_end_threshold)."
 else
-  log_warn "Battery charge control node not yet available (reboot may be required if DKMS just built)."
+  log_warn "Battery health control node not yet writable (reboot may be required if DKMS just built)."
 fi
 
 # 8. Summary Verification
@@ -110,10 +118,23 @@ echo -n "  CPU0 EPP State:       "
 cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null || echo "N/A"
 echo -n "  NMI Watchdog:         "
 cat /proc/sys/kernel/nmi_watchdog 2>/dev/null || echo "N/A"
-echo -n "  Battery Charge Limit: "
-cat /sys/class/power_supply/BAT1/charge_control_end_threshold 2>/dev/null || echo "Not exposed"
+echo -n "  Battery Health Mode:  "
+if [ -f "$WMI_HEALTH_NODE" ]; then
+  val=$(cat "$WMI_HEALTH_NODE" 2>/dev/null || echo "0")
+  if [ "$val" = "1" ]; then
+    echo "Active (80% charge limit enforced)"
+  else
+    echo "Disabled ($val)"
+  fi
+elif [ -f /sys/class/power_supply/BAT1/charge_control_end_threshold ]; then
+  echo "Active ($(cat /sys/class/power_supply/BAT1/charge_control_end_threshold)% limit)"
+else
+  echo "Not exposed"
+fi
 echo -n "  Intel DTT / Thermald: "
 systemctl is-active thermald 2>/dev/null || echo "N/A"
+echo -n "  Intel LPMD (SoC Low Power): "
+systemctl is-active intel_lpmd 2>/dev/null || echo "N/A"
 echo "${BOLD}-----------------------------------------------------------------${RESET}"
 echo ""
-log_success "All power optimizations applied successfully!"
+log_success "All power optimizations verified!"
