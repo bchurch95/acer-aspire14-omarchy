@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Omarchy User Preferences & Desktop Restoration Script
-# Repository: https://github.com/bchurch95/acer-aspire14-omarchy
+# Repository: https://github.com/bchurch95/omarchy-config
 # ==============================================================================
 
 set -euo pipefail
@@ -149,6 +149,18 @@ restore_user_configs() {
     sudo systemctl restart owntone.service 2>/dev/null || true
   fi
   log_success "PipeWire HomePods sink and OwnTone AirPlay bridge restored."
+
+  # PCIe ASPM & Power Management
+  if [[ -f "$CONFIGS_DIR/tmpfiles.d/aspm.conf" ]]; then
+    sudo mkdir -p /etc/tmpfiles.d
+    sudo cp -v "$CONFIGS_DIR/tmpfiles.d/aspm.conf" /etc/tmpfiles.d/aspm.conf
+    sudo systemd-tmpfiles --create /etc/tmpfiles.d/aspm.conf 2>/dev/null || true
+  fi
+  if [[ -f "$CONFIGS_DIR/limine-entry-tool.d/aspm.conf" && -d /etc/limine-entry-tool.d ]]; then
+    sudo cp -v "$CONFIGS_DIR/limine-entry-tool.d/aspm.conf" /etc/limine-entry-tool.d/aspm.conf
+  fi
+  command -v powerprofilesctl >/dev/null && powerprofilesctl set balanced || true
+  log_success "PCIe ASPM powersave policy and balanced power profile restored."
 
   # Reload desktop
   command -v hyprctl >/dev/null && hyprctl reload || true

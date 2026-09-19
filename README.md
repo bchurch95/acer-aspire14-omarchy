@@ -9,8 +9,8 @@ Comprehensive hardware notes, validated configurations, and one-command restorat
 To restore this entire setup (configurations, keybinds, bar widgets, terminal configs, sleep drop-ins, and shell plugins) onto a new Omarchy installation:
 
 ```bash
-git clone https://github.com/bchurch95/acer-aspire14-omarchy.git ~/Work/acer-aspire14-omarchy
-cd ~/Work/acer-aspire14-omarchy
+git clone https://github.com/bchurch95/acer-aspire14-omarchy-config.git ~/Work/acer-aspire14-omarchy-config
+cd ~/Work/acer-aspire14-omarchy-config
 ./restore.sh --all
 ```
 
@@ -73,10 +73,9 @@ All kernel command line drop-ins are located in `/etc/limine-entry-tool.d/` (cop
   MAX_SNAPSHOT_ENTRIES=6
   SNAPSHOT_FORMAT_CHOICE=5
   ```
-- **`/etc/limine-entry-tool.d/resume.conf`** *(Optional, if using swapfile hibernation)*:
+- **`/etc/limine-entry-tool.d/resume.conf`**:
   ```ini
-  # Calculate with: btrfs inspect-internal map-swapfile -r /path/to/swapfile
-  KERNEL_CMDLINE[default]+=" resume=/dev/mapper/root resume_offset=<SWAP_OFFSET>"
+  KERNEL_CMDLINE[default]+=" resume=/dev/mapper/root resume_offset=1901559"
   ```
 
 ### To Regenerate Bootloader Entries & UKIs:
@@ -141,9 +140,10 @@ nmcli -f NAME,TYPE,AUTOCONNECT connection show
 
 | Name | Type | Autoconnect |
 | :--- | :--- | :--- |
-| `MyHome-WiFi` (Wi-Fi) | 802-11-wireless | **yes** |
-| `WireGuard VPN` | wireguard | **no** |
+| `Media` (Wi-Fi) | 802-11-wireless | **yes** |
+| `Church Farms` | wireguard | **no** |
 | `Cloudflare WARP` | wireguard | **no** |
+| `Elm` | wireguard | **no** |
 
 ---
 
@@ -232,7 +232,7 @@ All custom and forked shell plugins are synchronized using the centralized [`bch
 
 ```
 .
-├── bootstrap.sh                             # Remote bootstrap script
+├── apply-power-fixes.sh                     # Hardware power, ASPM & battery limit suite
 ├── restore.sh                               # One-command restoration tool
 ├── verify-sleep.sh                          # Sleep state validation test
 ├── README.md                                # System and architecture documentation
@@ -240,28 +240,67 @@ All custom and forked shell plugins are synchronized using the centralized [`bch
     ├── applications/                        # Desktop entry files (.desktop)
     ├── bash/                                # Shell aliases and environment additions
     ├── chrome-flags.conf                    # Hardware media keys override
-    ├── cmdline.example                      # Kernel commandline template
     ├── hypr/                                # Hyprland bindings, looknfeel, input, monitors
     ├── icons/                               # Application icons
-    ├── limine-entry-tool.d/                 # Kernel cmdline and bootloader entries
+    ├── limine-entry-tool.d/                 # Kernel cmdline and bootloader entries (aspm, uki)
     ├── local-bin/                           # Custom launcher scripts
     ├── logind.conf.d/                       # Systemd lock inhibitors
     ├── modprobe.d/                          # Kernel driver options
     ├── omarchy/
     │   ├── bar/modules/                     # Custom QML bar modules (sysinfo, kdeconnect)
-    │   ├── shell-profiles/                  # Per-theme shell layout profiles
     │   ├── shell.json                       # Exact status bar layout and plugin order
-    │   └── smb/shares.json.example          # SMB network shares template
-    ├── owntone/                             # OwnTone server configuration template
+    │   └── smb/shares.json                  # SMB network shares setup
     ├── packages/
     │   └── explicit-packages.txt            # Explicit pacman/yay package manifest
-    ├── pipewire/                            # PipeWire null sink configuration
     ├── plugins/                             # Local plugin sources
-    ├── ssh/
-    │   └── config.example                   # SSH client configuration template
+    ├── ssh/                                 # Server SSH configuration
     ├── systemd/
-    │   ├── service.d/                       # Global service watchdog overrides
-    │   └── user/                            # User-level systemd service units
+    │   └── service.d/                       # Global service watchdog overrides
     ├── terminals/                           # Alacritty, Ghostty, Kitty, Foot font configs
-    └── themes/                              # Custom themes (purple-rising, q2dm1)
+    ├── themes/                              # Custom themes (purple-rising, q2dm1)
+    └── tmpfiles.d/                          # Systemd tmpfiles (PCIe ASPM powersave policy)
 ```
+
+---
+
+## 11. Acer Platform Power, Thermal & Battery Management
+
+Acer routes platform profiles, fan curves, and battery features through proprietary ACPI-WMI calls directly to the Embedded Controller (EC). Under Linux on the **Acer Aspire 14 (`Aspire A14-52M`, Lunar Lake)**, the architecture operates as follows:
+
+### 1. ACPI / WMI & Platform Profiles
+* **Mainline `acer-wmi` Driver:** Mainline Linux connects to basic hotkeys, rfkill switches, and video devices. On this Lunar Lake chassis, `/sys/firmware/acpi/platform_profile_choices` is not natively exposed by mainline `acer-wmi`.
+* **Userspace Fallback:** `power-profiles-daemon` falls back to `CpuDriver: intel_pstate` with `PlatformDriver: placeholder`. Power scaling is handled directly at the silicon level via Energy Performance Preference (EPP) registers.
+
+### 2. CPU Power Scaling & EPP
+* Managed by the `intel_pstate` driver with governor `powersave`.
+* Switching profiles via `powerprofilesctl set balanced` or `power-saver` dynamically writes to `/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference`.
+* On AC power, `balanced` defaults to `balance_performance`; on battery, `power-saver` sets EPP to `power` for maximum battery life.
+
+### 3. Intel DPTF / Thermald Adaptive Mode
+* `thermald.service` runs automatically with `--adaptive` (`/usr/bin/thermald --systemd --dbus-enable --adaptive`).
+* The kernel loads `int3400_thermal`, `int3403_thermal`, and `int340x_thermal_zone`.
+* The `INT3400 Thermal` zone operates under `user_space` policy, actively enforcing OEM Dynamic Tuning Technology (DTT) tables found in the ACPI DSDT to prevent thermal throttling without needing proprietary Windows utilities.
+
+### 4. 80% Battery Health Threshold (`charge_control_end_threshold`)
+* Acer Care Center manages battery limits over WMI GUID `79772EC5-04B1-4BFD-843C-61E7F77B6CC9`.
+* This repository includes the DKMS package definition `acer-wmi-battery-dkms` which hooks into this exact WMI GUID and exposes the standard Linux sysfs interface at `/sys/class/power_supply/BAT1/charge_control_end_threshold`.
+* Setting a limit:
+  ```bash
+  echo 80 | sudo tee /sys/class/power_supply/BAT1/charge_control_end_threshold
+  ```
+
+### 5. PCIe Active State Power Management (ASPM)
+* By default, PCIe ASPM policy is initialized as `[default]`, which may leave NVMe drives, Wi-Fi 7 controllers, and bridge interconnects in higher-power link states.
+* Configured permanently to `powersave` via `/etc/tmpfiles.d/aspm.conf` and `configs/limine-entry-tool.d/aspm.conf`:
+  ```bash
+  cat /sys/module/pcie_aspm/parameters/policy
+  # Output: default performance [powersave] powersupersave
+  ```
+
+### 6. One-Command Application
+Run the included optimization tool to deploy ASPM policies, balance EPP states, and install the battery threshold driver:
+```bash
+cd ~/Work/acer-aspire14-omarchy-config
+./apply-power-fixes.sh
+```
+
