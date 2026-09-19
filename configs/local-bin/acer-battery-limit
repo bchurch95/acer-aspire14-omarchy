@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# acer-battery-limit - Manage Acer 80% charge threshold (Health Mode)
+# ==============================================================================
+
+set -euo pipefail
+
+HEALTH_NODE="/sys/bus/wmi/drivers/acer-wmi-battery/health_mode"
+FALLBACK_NODE="/sys/class/power_supply/BAT1/charge_control_end_threshold"
+
+get_status() {
+  if [[ -r "$HEALTH_NODE" ]]; then
+    local val
+    val=$(<"$HEALTH_NODE")
+    if [[ "$val" == "1" ]]; then
+      echo "on"
+      return 0
+    else
+      echo "off"
+      return 0
+    fi
+  elif [[ -r "$FALLBACK_NODE" ]]; then
+    local val
+    val=$(<"$FALLBACK_NODE")
+    if [[ "$val" == "80" ]]; then
+      echo "on"
+      return 0
+    else
+      echo "off"
+      return 0
+    fi
+  fi
+  echo "off"
+}
+
+set_mode() {
+  local target="$1" # 1 = 80%, 0 = 100%
+  if [[ -w "$HEALTH_NODE" ]]; then
+    echo "$target" > "$HEALTH_NODE"
+    return 0
+  fi
+  if [[ -w "$FALLBACK_NODE" ]]; then
+    local threshold=$([[ "$target" == "1" ]] && echo 80 || echo 100)
+    echo "$threshold" > "$FALLBACK_NODE"
+    return 0
+  fi
+
+  # Needs elevated permissions
+  if [[ -f "$HEALTH_NODE" ]]; then
+    if command -v pkexec >/dev/null 2>&1 && [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+      pkexec /bin/sh -c "echo $target > '$HEALTH_NODE'"
+    else
+      sudo /bin/sh -c "echo $target > '$HEALTH_NODE'"
+    fi
+  fi
+}
+
+case "${1:-status}" in
+  status)
+    get_status
+    ;;
+  on|1|enable|80)
+    set_mode 1
+    ;;
+  off|0|disable|100)
+    set_mode 0
+    ;;
+  toggle)
+    current=$(get_status)
+    if [[ "$current" == "on" ]]; then
+      set_mode 0
+    else
+      set_mode 1
+    fi
+    ;;
+  *)
+    echo "Usage: $(basename "$0") [status|on|off|toggle]" >&2
+    exit 1
+    ;;
+esac

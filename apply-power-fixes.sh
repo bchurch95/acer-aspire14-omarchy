@@ -85,6 +85,16 @@ if [[ -f "$CONFIGS_DIR/modprobe.d/acer-wmi-battery.conf" ]]; then
   sudo cp -v "$CONFIGS_DIR/modprobe.d/acer-wmi-battery.conf" /etc/modprobe.d/acer-wmi-battery.conf
 fi
 
+if [[ -f "$CONFIGS_DIR/tmpfiles.d/acer-battery.conf" ]]; then
+  sudo cp -v "$CONFIGS_DIR/tmpfiles.d/acer-battery.conf" /etc/tmpfiles.d/acer-battery.conf
+  sudo systemd-tmpfiles --create /etc/tmpfiles.d/acer-battery.conf 2>/dev/null || true
+fi
+
+if [[ -f "$CONFIGS_DIR/udev/rules.d/98-acer-battery-permissions.rules" ]]; then
+  sudo cp -v "$CONFIGS_DIR/udev/rules.d/98-acer-battery-permissions.rules" /etc/udev/rules.d/98-acer-battery-permissions.rules
+  sudo udevadm control --reload-rules 2>/dev/null || true
+fi
+
 if ! lsmod | grep -q "acer_wmi_battery"; then
   if ! pacman -Qi acer-wmi-battery-dkms >/dev/null 2>&1 && ! pacman -Qi acer-wmi-battery-dkms-git >/dev/null 2>&1; then
     log_info "Installing acer-wmi-battery-dkms via AUR..."
@@ -95,16 +105,31 @@ if ! lsmod | grep -q "acer_wmi_battery"; then
   sudo modprobe acer-wmi-battery enable_health_mode=1 2>/dev/null || true
 fi
 
-# Apply 80% threshold to driver sysfs node
+# Make sysfs interface writable by userspace and desktop widgets
 WMI_HEALTH_NODE="/sys/bus/wmi/drivers/acer-wmi-battery/health_mode"
+if [[ -f "$WMI_HEALTH_NODE" ]]; then
+  sudo chmod 0666 "$WMI_HEALTH_NODE" 2>/dev/null || true
+fi
+
+# Deploy helper CLI and ensure executable
+mkdir -p "$HOME/.local/bin"
+cp -v "$CONFIGS_DIR/local-bin/acer-battery-limit" "$HOME/.local/bin/acer-battery-limit"
+chmod +x "$HOME/.local/bin/acer-battery-limit"
+sudo cp -v "$CONFIGS_DIR/local-bin/acer-battery-limit" "/usr/local/bin/acer-battery-limit" 2>/dev/null || true
+sudo chmod +x "/usr/local/bin/acer-battery-limit" 2>/dev/null || true
+
+# Apply initial 80% threshold to driver sysfs node
 if [[ -w "$WMI_HEALTH_NODE" ]]; then
-  echo 1 | sudo tee "$WMI_HEALTH_NODE" >/dev/null
+  echo 1 > "$WMI_HEALTH_NODE"
   log_success "Battery Health Mode set to 1 (80% charge limit active)."
-elif [[ -w /sys/class/power_supply/BAT1/charge_control_end_threshold ]]; then
-  echo 80 | sudo tee /sys/class/power_supply/BAT1/charge_control_end_threshold >/dev/null
-  log_success "Battery charge limit set to 80% (/sys/class/power_supply/BAT1/charge_control_end_threshold)."
-else
-  log_warn "Battery health control node not yet writable (reboot may be required if DKMS just built)."
+fi
+
+# Deploy custom battery widget plugin (ben.power)
+if [[ -d "$CONFIGS_DIR/plugins/ben.power" ]]; then
+  mkdir -p "$HOME/.config/omarchy/plugins/ben.power"
+  cp -rv "$CONFIGS_DIR/plugins/ben.power/"* "$HOME/.config/omarchy/plugins/ben.power/"
+  command -v omarchy >/dev/null 2>&1 && omarchy restart shell || true
+  log_success "Custom battery bar widget (ben.power) with 80% cap toggle deployed and shell reloaded."
 fi
 
 # 8. Summary Verification

@@ -16,9 +16,6 @@
           "id": "omarchy.weather"
         },
         {
-          "id": "io.github.jainprashul.omacast"
-        },
-        {
           "id": "omarchy.system-update"
         }
       ],
@@ -41,14 +38,26 @@
           "id": "omarchy.tray"
         },
         {
+          "id": "thefreshoffice.speaker-calibrator"
+        },
+        {
+          "id": "nosignal.omalava"
+        },
+        {
+          "id": "io.github.bchurch95.omarchy-universal-cast"
+        },
+        {
           "id": "sysinfo",
           "type": "qml"
         },
         {
-          "id": "omamail"
+          "id": "nosignal.omasend"
         },
         {
-          "id": "nosignal.omasend"
+          "id": "nixfred.blip"
+        },
+        {
+          "id": "omamail"
         },
         {
           "id": "jankeesvw.time-machine"
@@ -82,24 +91,46 @@
           "id": "io.github.vuhungthang.monitor-studio"
         },
         {
+          "id": "ben.power",
+          "showPercentage": false
+        }
+      ]
+    },
+    "secondaryLayout": {
+      "left": [
+        {
+          "id": "omarchy.workspaces"
+        }
+      ],
+      "center": [],
+      "right": [
+        {
+          "id": "omarchy.tray"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
           "id": "omarchy.power",
           "showPercentage": false
         }
       ]
     },
     "position": "top",
-    "transparent": true,
+    "transparent": false,
     "id": "ben.bar"
   },
   "cloneSourceRestores": [
     "ben.media",
     "ben.agents",
-    "ben.menu"
+    "ben.menu",
+    "ben.notifications"
   ],
   "disabledPlugins": [
     "omarchy.media",
     "omarchy.agents",
-    "omarchy.menu"
+    "omarchy.menu",
+    "omarchy.notifications"
   ],
   "idle": {
     "lock": 300,
@@ -108,6 +139,9 @@
   "plugins": [
     {
       "id": "nosignal.omasend"
+    },
+    {
+      "id": "ben.notifications"
     }
   ],
   "version": 1

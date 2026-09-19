@@ -169,11 +169,19 @@ restore_user_configs() {
     sudo cp -v "$CONFIGS_DIR/udev/rules.d/99-power-profile-switch.rules" /etc/udev/rules.d/99-power-profile-switch.rules
     sudo udevadm control --reload-rules 2>/dev/null || true
   fi
+  if [[ -f "$CONFIGS_DIR/tmpfiles.d/acer-battery.conf" ]]; then
+    sudo cp -v "$CONFIGS_DIR/tmpfiles.d/acer-battery.conf" /etc/tmpfiles.d/acer-battery.conf
+    sudo systemd-tmpfiles --create /etc/tmpfiles.d/acer-battery.conf 2>/dev/null || true
+  fi
+  if [[ -f "$CONFIGS_DIR/udev/rules.d/98-acer-battery-permissions.rules" ]]; then
+    sudo cp -v "$CONFIGS_DIR/udev/rules.d/98-acer-battery-permissions.rules" /etc/udev/rules.d/98-acer-battery-permissions.rules
+    sudo udevadm control --reload-rules 2>/dev/null || true
+  fi
   if [[ -f "$CONFIGS_DIR/modprobe.d/acer-wmi-battery.conf" ]]; then
     sudo cp -v "$CONFIGS_DIR/modprobe.d/acer-wmi-battery.conf" /etc/modprobe.d/acer-wmi-battery.conf
   fi
   command -v powerprofilesctl >/dev/null && powerprofilesctl set balanced || true
-  log_success "PCIe ASPM powersave policy, NMI watchdog tweak, udev power switcher, battery modprobe config, and balanced power profile restored."
+  log_success "PCIe ASPM powersave policy, NMI watchdog tweak, udev power switcher, battery permissions, and balanced power profile restored."
 
   # Reload desktop
   command -v hyprctl >/dev/null && hyprctl reload || true

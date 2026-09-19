@@ -284,17 +284,20 @@ Acer routes platform profiles, fan curves, and battery features through propriet
 * The kernel loads `int3400_thermal`, `int3403_thermal`, and `int340x_thermal_zone`.
 * The `INT3400 Thermal` zone operates under `user_space` policy, actively enforcing OEM Dynamic Tuning Technology (DTT) tables found in the ACPI DSDT to prevent thermal throttling without needing proprietary Windows utilities.
 
-### 4. 80% Battery Health Threshold (`health_mode`)
+### 4. 80% Battery Health Threshold (`health_mode`) & Status Bar Widget
 * Acer Care Center manages battery limits over WMI GUID `79772EC5-04B1-4BFD-843C-61E7F77B6CC9`.
 * This repository includes the DKMS package definition `acer-wmi-battery-dkms` which binds to this exact WMI GUID and exposes the driver interface at `/sys/bus/wmi/drivers/acer-wmi-battery/health_mode`.
 * Configured permanently on boot via `/etc/modprobe.d/acer-wmi-battery.conf` (`options acer_wmi_battery enable_health_mode=1`).
-* Manually toggling the 80% limit:
+* **Omarchy Status Bar Widget Integration (`ben.power`):**
+  * Click the Battery widget in the Omarchy bar to open the popup panel.
+  * Under **BATTERY CHARGE LIMIT**, toggle between `[ 󱐌 80% Cap ]` and `[ 󰁹 100% Full ]`.
+  * **Quick Toggle:** Middle-click the battery icon directly on the status bar to toggle the 80% cap without opening the popup!
+* **Command Line Control:**
   ```bash
-  # Enable 80% charge threshold
-  echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode
-
-  # Disable limit (allow 100% full charge)
-  echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode
+  acer-battery-limit status   # Returns "on" or "off"
+  acer-battery-limit toggle   # Toggles between 80% and 100%
+  acer-battery-limit on       # Enforce 80% cap
+  acer-battery-limit off      # Allow 100% charge
   ```
 
 ### 5. PCIe Active State Power Management (ASPM)
