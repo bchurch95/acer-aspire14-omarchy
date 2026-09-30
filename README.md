@@ -228,7 +228,24 @@ All custom and forked shell plugins are synchronized using the centralized [`bch
 
 ---
 
-## 10. Backup Contents & Repository Structure
+## 10. Flea File Manager (`flea-bin`)
+
+[Flea](https://github.com/thisisgm/flea) is a fast, keyboard-first file manager and drop shelf designed for Omarchy and Wayland.
+
+- **Package**: `flea-bin` (AUR)
+- **Binary**: `/usr/bin/flea`
+- **Key Features**:
+  - Full keyboard-driven navigation (`?` for in-app keymap sheet, Vim navigation bindings `j`/`k`/`h`/`l`).
+  - View modes: List (`Ctrl + Shift + 1`), Columns (`Ctrl + Shift + 2`), Grid (`Ctrl + Shift + 3`).
+  - Folder Jump in path bar across favourites, zoxide, and recent directories.
+  - Drop shelf bar widget integration (`/usr/share/flea/shelf`) and Wayland drag-and-drop rail.
+  - Hardware-accelerated media previewing and quick look (`Ctrl + Space` / `Alt + P`).
+- **Hardware Acceleration Note**:
+  - On Intel Lunar Lake Xe2 GPUs, Qt Multimedia uses VA-API via OpenGL for zero-copy video decoding textures. Launching with `QSG_RHI_BACKEND=opengl` ensures full OpenGL RHI texture conversion.
+
+---
+
+## 11. Backup Contents & Repository Structure
 
 ```
 .
@@ -266,7 +283,7 @@ All custom and forked shell plugins are synchronized using the centralized [`bch
 
 ---
 
-## 11. Acer Platform Power, Thermal & Battery Management
+## 12. Acer Platform Power, Thermal & Battery Management
 
 Acer routes platform profiles, fan curves, and battery features through proprietary ACPI-WMI calls directly to the Embedded Controller (EC). Under Linux on the **Acer Aspire 14 (`Aspire A14-52M`, Lunar Lake)**, the architecture operates as follows:
 

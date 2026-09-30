@@ -39,6 +39,7 @@ fcitx5-qt 5.1.14-2
 fd 10.4.2-2
 ffmpegthumbnailer 2.3.0-2
 fluxcast-git 0.2.3.r0.ga74f39f-1
+flea-bin 0.3.6-1
 foot 1.27.0-2
 fzf 0.74.3-1
 git 2.55.0-1
