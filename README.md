@@ -239,9 +239,8 @@ All custom and forked shell plugins are synchronized using the centralized [`bch
   - View modes: List (`Ctrl + Shift + 1`), Columns (`Ctrl + Shift + 2`), Grid (`Ctrl + Shift + 3`).
   - Folder Jump in path bar across favourites, zoxide, and recent directories.
   - Drop shelf bar widget integration (`/usr/share/flea/shelf`) and Wayland drag-and-drop rail.
-  - Hardware-accelerated media previewing and quick look (`Ctrl + Space` / `Alt + P`).
-- **Hardware Acceleration Note**:
-  - On Intel Lunar Lake Xe2 GPUs, Qt Multimedia uses VA-API via OpenGL for zero-copy video decoding textures. Launching with `QSG_RHI_BACKEND=opengl` ensures full OpenGL RHI texture conversion.
+- **Graphics & Acceleration**:
+  - Uses the native Vulkan rendering backend by default on the Intel Lunar Lake Arc GPU for optimal low-overhead UI rendering and modern Wayland pipeline integration.
 
 ---
 
